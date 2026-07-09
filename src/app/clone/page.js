@@ -384,9 +384,6 @@ export default function ClonePage() {
           </div>
           {extraindo && <p className="text-xs text-amber-300/80 flex items-center gap-1"><svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Extraindo áudio do vídeo...</p>}
           {audioFile && !extraindo && <p className="text-xs text-white/40 -mt-2">{audioFile.name} ({(audioFile.size / 1024 / 1024).toFixed(1)} MB)</p>}
-          {audioBlob && !gravando && (
-            <audio controls src={(() => { previewUrlRef.current = URL.createObjectURL(audioBlob); return previewUrlRef.current })()} className="w-full h-10" playsInline />
-          )}
           {audioSalvo && (
             <div className="flex items-center gap-2 rounded-xl bg-amber-500/10 border border-amber-400/20 px-3 py-2">
               <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
