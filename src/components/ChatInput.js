@@ -10,10 +10,12 @@ export default function ChatInput({ onEnviar, carregando }) {
   const [aviso, setAviso] = useState('')
   const [previewArquivo, setPreviewArquivo] = useState(null)
   const [usouVoz, setUsouVoz] = useState(false)
+  const [transcrevendo, setTranscrevendo] = useState(false)
   const textareaRef = useRef(null)
   const docRef = useRef(null)
   const imgRef = useRef(null)
-  const recognitionRef = useRef(null)
+  const mediaRecorderRef = useRef(null)
+  const chunksRef = useRef([])
   const avisoTimer = useRef(null)
 
   function carregarClone() {
@@ -84,49 +86,51 @@ export default function ChatInput({ onEnviar, carregando }) {
     e.target.value = ''
   }
 
-  function toggleMicrofone() {
+  async function toggleMicrofone() {
     if (ouvindo) {
-      recognitionRef.current?.stop()
-      setOuvindo(false)
+      mediaRecorderRef.current?.stop()
       return
     }
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition
-    if (!SpeechRecognition) {
-      alert('Reconhecimento de voz não suportado neste navegador.')
-      return
-    }
-    const recognition = new SpeechRecognition()
-    recognition.lang = 'pt-BR'
-    recognition.continuous = false
-    recognition.interimResults = true
-    recognitionRef.current = recognition
-
-    recognition.onresult = (e) => {
-      const transcript = Array.from(e.results).map((r) => r[0].transcript).join('')
-      setPergunta(transcript)
-      if (textareaRef.current) {
-        textareaRef.current.style.height = 'auto'
-        textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`
-      }
-    }
-
-    recognition.onend = () => {
-      setOuvindo(false)
-      setPergunta((prev) => {
-        if (prev.trim()) {
+    if (transcrevendo) return
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm') ? 'audio/webm' : MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : ''
+      const recorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream)
+      mediaRecorderRef.current = recorder
+      chunksRef.current = []
+      recorder.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data) }
+      recorder.onstop = async () => {
+        stream.getTracks().forEach((t) => t.stop())
+        setOuvindo(false)
+        const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
+        if (blob.size === 0) return
+        setTranscrevendo(true)
+        mostrarAviso('Transcrevendo áudio...')
+        try {
+          const form = new FormData()
+          form.append('audio', blob, 'gravacao.webm')
+          const res = await fetch('/api/transcribe', { method: 'POST', body: form })
+          const data = await res.json()
+          if (!res.ok || !data.texto) throw new Error(data.erro || 'Falha na transcrição')
+          setPergunta((prev) => (prev ? prev + ' ' + data.texto : data.texto).trim())
           setUsouVoz(true)
-          setTimeout(() => {
-            const form = textareaRef.current?.closest('form')
-            form?.requestSubmit()
-          }, 300)
+          if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto'
+            textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 150)}px`
+          }
+          setTimeout(() => textareaRef.current?.closest('form')?.requestSubmit(), 400)
+        } catch (err) {
+          mostrarAviso('Não consegui transcrever. Digite manualmente.')
+        } finally {
+          setTranscrevendo(false)
         }
-        return prev
-      })
+      }
+      recorder.start()
+      setOuvindo(true)
+      mostrarAviso('Gravando... fale agora e clique o microfone para parar.')
+    } catch (err) {
+      mostrarAviso('Não foi possível acessar o microfone.')
     }
-
-    recognition.onerror = () => setOuvindo(false)
-    recognition.start()
-    setOuvindo(true)
   }
 
   return (
@@ -174,9 +178,9 @@ export default function ChatInput({ onEnviar, carregando }) {
           <button
             type="button"
             onClick={toggleMicrofone}
-            disabled={carregando}
-            className={`rounded-xl border px-3 py-[11px] transition-all ${ouvindo ? 'bg-amber-500/30 border-amber-400/60 text-amber-300 shadow-lg shadow-amber-500/20 animate-pulse' : 'bg-white/10 hover:bg-white/20 border-white/20 text-white/60 hover:text-white'}`}
-            title={ouvindo ? 'Parar gravação' : 'Falar'}
+            disabled={carregando || transcrevendo}
+            className={`rounded-xl border px-3 py-[11px] transition-all ${ouvindo ? 'bg-rose-500/30 border-rose-400/60 text-rose-300 shadow-lg shadow-rose-500/20 animate-pulse' : transcrevendo ? 'bg-amber-500/20 border-amber-400/40 text-amber-300' : 'bg-white/10 hover:bg-white/20 border-white/20 text-white/60 hover:text-white'}`}
+            title={ouvindo ? 'Parar gravação' : transcrevendo ? 'Transcrevendo...' : 'Falar'}
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z" />
