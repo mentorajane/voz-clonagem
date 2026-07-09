@@ -70,7 +70,7 @@ async function chamarGroqTexto(systemPrompt, pergunta) {
       { role: 'user', content: pergunta },
     ],
     modelo: 'llama-3.1-8b-instant',
-    modeloNvidia: 'meta/llama-3.1-8b-instruct',
+    modeloNvidia: 'minimaxai/minimax-m3',
     maxTokens: 500,
   })
 }
