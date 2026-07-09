@@ -1,12 +1,14 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { comprimirImagem } from '@/lib/utils'
 
 export default function ChatInput({ onEnviar, carregando }) {
   const [pergunta, setPergunta] = useState('')
   const [ouvindo, setOuvindo] = useState(false)
   const [arquivos, setArquivos] = useState([])
   const [aviso, setAviso] = useState('')
+  const [previewArquivo, setPreviewArquivo] = useState(null)
   const textareaRef = useRef(null)
   const docRef = useRef(null)
   const imgRef = useRef(null)
@@ -71,15 +73,12 @@ export default function ChatInput({ onEnviar, carregando }) {
     e.target.value = ''
   }
 
-  function handleImgUpload(e) {
+  async function handleImgUpload(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = () => {
-      setArquivos((prev) => [...prev, { nome: file.name, conteudo: reader.result, tipo: 'img', icon: 'img' }])
-      mostrarAviso('Imagem carregada com sucesso!')
-    }
-    reader.readAsDataURL(file)
+    const conteudo = await comprimirImagem(file)
+    setArquivos((prev) => [...prev, { nome: file.name, conteudo, tipo: 'img', icon: 'img' }])
+    mostrarAviso('Imagem carregada com sucesso!')
     e.target.value = ''
   }
 
@@ -223,10 +222,47 @@ export default function ChatInput({ onEnviar, carregando }) {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
               )}
-              <span className="truncate max-w-[120px]">{a.nome}</span>
-              <button onClick={() => setArquivos((prev) => prev.filter((_, idx) => idx !== i))} className="text-red-400/60 hover:text-red-300 ml-0.5 leading-none">&times;</button>
+              <button type="button" onClick={() => setPreviewArquivo(a)} className="truncate max-w-[120px] hover:text-white transition-colors cursor-pointer text-left">{a.nome}</button>
+              <button type="button" onClick={() => setArquivos((prev) => prev.filter((_, idx) => idx !== i))} className="text-red-400/60 hover:text-red-300 ml-0.5 leading-none">&times;</button>
             </span>
           ))}
+        </div>
+      )}
+
+      {/* Modal de preview */}
+      {previewArquivo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setPreviewArquivo(null)}>
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div className="relative w-full max-w-lg max-h-[80vh] rounded-2xl bg-gray-900/95 border border-white/20 backdrop-blur-xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
+              <div className="flex items-center gap-2 min-w-0">
+                {previewArquivo.icon === 'doc' ? (
+                  <svg className="w-4 h-4 text-amber-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                  </svg>
+                ) : (
+                  <svg className="w-4 h-4 text-sky-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                )}
+                <span className="text-sm font-medium text-white truncate">{previewArquivo.nome}</span>
+              </div>
+              <button type="button" onClick={() => setPreviewArquivo(null)} className="text-white/40 hover:text-white/70 transition-colors flex-shrink-0 ml-2">
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-5 overflow-y-auto max-h-[calc(80vh-60px)]">
+              {previewArquivo.tipo === 'img' && previewArquivo.conteudo ? (
+                <img src={previewArquivo.conteudo} alt={previewArquivo.nome} className="w-full rounded-lg" />
+              ) : previewArquivo.texto ? (
+                <pre className="text-xs text-white/80 whitespace-pre-wrap font-mono leading-relaxed">{previewArquivo.texto}</pre>
+              ) : (
+                <p className="text-sm text-white/40 italic">Conteúdo não disponível para visualização.</p>
+              )}
+            </div>
+          </div>
         </div>
       )}
     </form>

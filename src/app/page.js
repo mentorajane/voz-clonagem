@@ -105,8 +105,9 @@ export default function Home() {
       })
 
       if (!chatRes.ok) {
-        const errData = await chatRes.json()
-        throw new Error(errData.erro || 'Erro ao obter resposta')
+        let errMsg = 'Erro ao obter resposta'
+        try { const errData = await chatRes.json(); errMsg = errData.erro || errMsg } catch { errMsg = await chatRes.text() || errMsg }
+        throw new Error(errMsg)
       }
 
       const { resposta: textoResposta } = await chatRes.json()

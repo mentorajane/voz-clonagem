@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { comprimirImagem } from '@/lib/utils'
 
 const SENHA = '1234'
 
@@ -35,6 +36,7 @@ export default function ClonePage() {
   const [materiaisImg, setMateriaisImg] = useState([])
   const [telegramAudio, setTelegramAudio] = useState(true)
   const [aviso, setAviso] = useState('')
+  const [previewMaterial, setPreviewMaterial] = useState(null)
   const docSettingsRef = useRef(null)
   const skillSettingsRef = useRef(null)
   const imgSettingsRef = useRef(null)
@@ -191,19 +193,16 @@ export default function ClonePage() {
     e.target.value = ''
   }
 
-  function handleImgSettings(e) {
+  async function handleImgSettings(e) {
     const file = e.target.files?.[0]
     if (!file) return
-    const reader = new FileReader()
-    reader.onload = async () => {
-      const novo = { nome: file.name, conteudo: reader.result, tipo: 'img' }
-      const atualizados = [...materiaisImg, novo]
-      setMateriaisImg(atualizados)
-      localStorage.setItem('materiais_img', JSON.stringify(atualizados))
-      await salvarMateriaisSupabase(materiaisDocs, materiaisSkills, atualizados)
-      setAviso('Imagem carregada com sucesso!'); setTimeout(() => setAviso(''), 3000)
-    }
-    reader.readAsDataURL(file)
+    const conteudo = await comprimirImagem(file)
+    const novo = { nome: file.name, conteudo, tipo: 'img' }
+    const atualizados = [...materiaisImg, novo]
+    setMateriaisImg(atualizados)
+    localStorage.setItem('materiais_img', JSON.stringify(atualizados))
+    await salvarMateriaisSupabase(materiaisDocs, materiaisSkills, atualizados)
+    setAviso('Imagem carregada com sucesso!'); setTimeout(() => setAviso(''), 3000)
     e.target.value = ''
   }
 
@@ -508,46 +507,74 @@ export default function ClonePage() {
           <div className="space-y-2">
             {materiaisDocs.map((p, i) => (
               <div key={`md-${i}`} className="flex items-center justify-between rounded-lg bg-amber-500/10 border border-amber-400/20 px-3 py-2">
-                <div className="flex items-center gap-2 text-sm text-amber-300">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onClick={() => setPreviewMaterial(p)} className="flex items-center gap-2 text-sm text-amber-300 flex-1 min-w-0 text-left cursor-pointer hover:text-white transition-colors">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                   </svg>
-                  <span className="truncate max-w-[200px]">{p.nome}</span>
-                  {p.texto && <span className="text-[10px] text-amber-400/60">({p.texto.length} caracteres)</span>}
-                </div>
+                  <span className="truncate">{p.nome}</span>
+                  {p.texto && <span className="text-[10px] text-amber-400/60 flex-shrink-0">({p.texto.length} caracteres)</span>}
+                </button>
                 <button onClick={async () => { const a = materiaisDocs.filter((_, idx) => idx !== i); setMateriaisDocs(a); localStorage.setItem('materiais_docs', JSON.stringify(a)); await salvarMateriaisSupabase(a, materiaisSkills, materiaisImg) }}
-                  className="text-red-400/60 hover:text-red-300 text-sm">&times;</button>
+                  className="text-red-400/60 hover:text-red-300 text-sm flex-shrink-0">&times;</button>
               </div>
             ))}
             {materiaisSkills.map((s, i) => (
               <div key={`ms-${i}`} className="flex items-center justify-between rounded-lg bg-violet-500/10 border border-violet-400/20 px-3 py-2">
-                <div className="flex items-center gap-2 text-sm text-violet-300">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onClick={() => setPreviewMaterial(s)} className="flex items-center gap-2 text-sm text-violet-300 flex-1 min-w-0 text-left cursor-pointer hover:text-white transition-colors">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
                   </svg>
-                  <span className="truncate max-w-[200px]">{s.nome}</span>
-                  {s.texto && <span className="text-[10px] text-violet-400/60">({s.texto.length} caracteres)</span>}
-                </div>
+                  <span className="truncate">{s.nome}</span>
+                  {s.texto && <span className="text-[10px] text-violet-400/60 flex-shrink-0">({s.texto.length} caracteres)</span>}
+                </button>
                 <button onClick={async () => { const a = materiaisSkills.filter((_, idx) => idx !== i); setMateriaisSkills(a); localStorage.setItem('materiais_skills', JSON.stringify(a)); await salvarMateriaisSupabase(materiaisDocs, a, materiaisImg) }}
-                  className="text-red-400/60 hover:text-red-300 text-sm">&times;</button>
+                  className="text-red-400/60 hover:text-red-300 text-sm flex-shrink-0">&times;</button>
               </div>
             ))}
             {materiaisImg.map((img, i) => (
               <div key={`mi-${i}`} className="flex items-center justify-between rounded-lg bg-sky-500/10 border border-sky-400/20 px-3 py-2">
-                <div className="flex items-center gap-2 text-sm text-sky-300">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <button onClick={() => setPreviewMaterial(img)} className="flex items-center gap-2 text-sm text-sky-300 flex-1 min-w-0 text-left cursor-pointer hover:text-white transition-colors">
+                  <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   {img.nome}
-                </div>
+                </button>
                 <button onClick={async () => { const a = materiaisImg.filter((_, idx) => idx !== i); setMateriaisImg(a); localStorage.setItem('materiais_img', JSON.stringify(a)); await salvarMateriaisSupabase(materiaisDocs, materiaisSkills, a) }}
-                  className="text-red-400/60 hover:text-red-300 text-sm">&times;</button>
+                  className="text-red-400/60 hover:text-red-300 text-sm flex-shrink-0">&times;</button>
               </div>
             ))}
             {(materiaisDocs.length > 0 || materiaisSkills.length > 0 || materiaisImg.length > 0) && (
               <button onClick={async () => { setMateriaisDocs([]); setMateriaisSkills([]); setMateriaisImg([]); localStorage.removeItem('materiais_docs'); localStorage.removeItem('materiais_skills'); localStorage.removeItem('materiais_img'); await salvarMateriaisSupabase([], [], []) }}
                 className="text-xs text-white/40 hover:text-red-300 transition-colors mt-2">Limpar todos</button>
             )}
+          </div>
+        )}
+
+        {/* Modal de preview */}
+        {previewMaterial && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center px-4" onClick={() => setPreviewMaterial(null)}>
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+            <div className="relative w-full max-w-lg max-h-[80vh] rounded-2xl bg-gray-900/95 border border-white/20 backdrop-blur-xl overflow-hidden shadow-2xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between px-5 py-3 border-b border-white/10">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-medium text-white truncate">{previewMaterial.nome}</span>
+                </div>
+                <button type="button" onClick={() => setPreviewMaterial(null)} className="text-white/40 hover:text-white/70 transition-colors flex-shrink-0 ml-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+              <div className="p-5 overflow-y-auto max-h-[calc(80vh-60px)]">
+                {previewMaterial.tipo === 'img' && previewMaterial.conteudo ? (
+                  <img src={previewMaterial.conteudo} alt={previewMaterial.nome} className="w-full rounded-lg" />
+                ) : previewMaterial.texto ? (
+                  <pre className="text-xs text-white/80 whitespace-pre-wrap font-mono leading-relaxed">{previewMaterial.texto}</pre>
+                ) : (
+                  <p className="text-sm text-white/40 italic">Conteúdo não disponível para visualização.</p>
+                )}
+              </div>
+            </div>
           </div>
         )}
         <div className="mt-4 flex items-center gap-3">

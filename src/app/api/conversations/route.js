@@ -52,7 +52,7 @@ export async function POST(request) {
       .select()
     // Se o insert funcionou, tenta atualizar a lingua separadamente
     if (!error && lingua && data?.[0]?.id) {
-      await supabase.from('conversas').update({ lingua }).eq('id', data[0].id).catch(() => {})
+      try { await supabase.from('conversas').update({ lingua }).eq('id', data[0].id) } catch (_) {}
     }
 
     if (error) {
