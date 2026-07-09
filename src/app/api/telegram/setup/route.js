@@ -6,11 +6,7 @@ export async function GET() {
     return NextResponse.json({ erro: 'TELEGRAM_BOT_TOKEN não configurado.' }, { status: 500 })
   }
 
-  const baseUrl = process.env.VERCEL_URL
-    ? `https://${process.env.VERCEL_URL}`
-    : 'https://assistente-voz-clonagem.vercel.app'
-
-  const webhookUrl = `${baseUrl}/api/telegram/webhook`
+  const webhookUrl = 'https://assistente-voz-clonagem.vercel.app/api/telegram/webhook'
 
   try {
     const res = await fetch(`https://api.telegram.org/bot${token}/setWebhook?url=${webhookUrl}`, {
