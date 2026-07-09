@@ -120,12 +120,12 @@ async function transcreverAudio(groqKey, buffer) {
 }
 
 async function enviarAudioFish(token, chatId, fishKey, fishModelId, texto, telegramAudio) {
-  if (!telegramAudio) return false
+  if (!telegramAudio || !fishModelId || !fishKey) return false
   try {
     const ttsRes = await fetch('https://api.fish.audio/v1/tts', {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${fishKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: texto, reference_id: fishModelId, model: 's2.1-pro-free', language: 'pt-br' }),
+      headers: { 'Authorization': `Bearer ${fishKey}`, 'Content-Type': 'application/json', 'model': 's2.1-pro-free' },
+      body: JSON.stringify({ text: texto, reference_id: fishModelId, language: 'pt-br' }),
     })
     if (!ttsRes.ok) return false
     const audioBuffer = await ttsRes.arrayBuffer()
@@ -214,8 +214,7 @@ export async function POST(request) {
 
   } catch (err) {
     console.error('Telegram webhook error:', err)
-    const msgErro = `Erro: ${err?.message || err || 'desconhecido'}`
-    await sendMessage(token, chatId, msgErro)
+    await sendMessage(token, chatId, 'Desculpe, ocorreu um erro ao processar sua mensagem.')
   }
 
   return NextResponse.json({ ok: true })
