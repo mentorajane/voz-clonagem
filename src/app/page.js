@@ -128,13 +128,8 @@ export default function Home() {
             const url = URL.createObjectURL(blob)
             setAudioUrl(url)
             setUsandoVozClone(true)
-          } else {
-            throw new Error('fallback')
           }
-        } catch (_) {
-          setTextoFalar(textoResposta)
-          setFalando(true)
-        }
+        } catch (_) {}
         setGerandoVoz(false)
       }
 
