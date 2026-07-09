@@ -46,12 +46,16 @@ export default function ClonePage() {
     const audioBase64 = localStorage.getItem('gravacao_audio')
     if (audioBase64) {
       setAudioSalvo(audioBase64)
-      const bin = atob(audioBase64.split(',')[1])
+      const partes = audioBase64.split(',')
+      const meta = partes[0] || ''
+      const mime = meta.match(/:(.*?);/)?.[1] || 'audio/mp4'
+      const ext = mime.includes('webm') ? 'webm' : mime.includes('wav') ? 'wav' : mime.includes('mpeg') ? 'mp3' : mime.includes('mp4') ? 'm4a' : 'm4a'
+      const bin = atob(partes[1])
       const buf = new ArrayBuffer(bin.length)
       const view = new Uint8Array(buf)
       for (let i = 0; i < bin.length; i++) view[i] = bin.charCodeAt(i)
-      const blob = new Blob([buf], { type: 'audio/mp4' })
-      const file = new File([blob], 'gravacao.m4a', { type: 'audio/mp4' })
+      const blob = new Blob([buf], { type: mime })
+      const file = new File([blob], 'gravacao.' + ext, { type: mime })
       setAudioBlob(blob)
       setAudioFile(file)
     }
@@ -340,16 +344,16 @@ export default function ClonePage() {
                 if (file.type.startsWith('video/')) {
                   setExtraindo(true)
                   const video = document.createElement('video')
-                  video.muted = false
+                  video.muted = true
                   video.playsInline = true
                   const blobUrl = URL.createObjectURL(file)
                   video.src = blobUrl
                   video.onloadedmetadata = async () => {
-                    video.play()
                     try {
+                      await video.play()
                       const stream = video.captureStream()
                       const audioTrack = stream.getAudioTracks()[0]
-                      if (!audioTrack) { setExtraindo(false); setErro('Não foi possível extrair áudio deste vídeo.'); return }
+                      if (!audioTrack) { setExtraindo(false); setErro('Não foi possível extrair áudio deste vídeo.'); URL.revokeObjectURL(blobUrl); return }
                       const audioStream = new MediaStream([audioTrack])
                       const mime = MediaRecorder.isTypeSupported('audio/mp4') ? 'audio/mp4' : 'audio/webm'
                       const chunks = []
@@ -368,8 +372,9 @@ export default function ClonePage() {
                         setExtraindo(false)
                       }
                       recorder.start()
-                      setTimeout(() => recorder.stop(), 30000)
-                    } catch { setExtraindo(false); setErro('Falha ao extrair áudio do vídeo.') }
+                      video.onended = () => { if (recorder.state !== 'inactive') recorder.stop() }
+                      setTimeout(() => { if (recorder.state !== 'inactive') recorder.stop() }, 61000)
+                    } catch { setExtraindo(false); setErro('Falha ao extrair áudio do vídeo.'); URL.revokeObjectURL(blobUrl) }
                   }
                 } else {
                   setAudioFile(file)
