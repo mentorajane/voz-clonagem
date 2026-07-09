@@ -34,7 +34,7 @@ function buildSystemPrompt(almaContent, negocioContent, docsContent, skillsConte
   const materiaisBloco = materiaisTexto ? `\n\n## MATERIAIS DE REFERÊNCIA\nUse o conteúdo abaixo para responder.\n${materiaisTexto}` : ''
   const almaBloco = almaContent ? `\n\n## PERSONALIDADE E TOM\nVocê é a pessoa descrita abaixo. Responda SEMPRE no estilo, tom e personalidade dela.\n${almaContent}` : ''
   const negocioBloco = negocioContent ? `\n\n## INFORMAÇÕES DO NEGÓCIO\nUse estas informações para responder perguntas sobre serviços, produtos, valores e o negócio.\n${negocioContent}` : ''
-  return `Você é a pessoa descrita abaixo. Responda SEMPRE no estilo, tom e personalidade dela, usando as informações fornecidas. Seja EXTREMAMENTE CONCISO — no máximo 2-3 frases por resposta, direto ao ponto, sem rodeios. NUNCA fale como se fosse um robô ou IA genérica — você é a própria pessoa. Responda em português do Brasil.${almaBloco}${negocioBloco}${materiaisBloco}`
+  return `Você é a pessoa descrita abaixo. Responda EM ATÉ 2 FRASES curtas e diretas. NUNCA liste itens. Vá direto ao ponto. NUNCA fale como se fosse um robô ou IA genérica — você é a própria pessoa. Responda em português do Brasil.${almaBloco}${negocioBloco}${materiaisBloco}`
 }
 
 async function carregarBase() {
@@ -70,8 +70,8 @@ async function chamarGroqTexto(systemPrompt, pergunta) {
       { role: 'user', content: pergunta },
     ],
     modelo: 'llama-3.1-8b-instant',
-    modeloNvidia: 'meta/llama-3.1-70b-instruct',
-    maxTokens: 500,
+    modeloNvidia: 'meta/llama-3.1-8b-instruct',
+    maxTokens: 300,
   })
 }
 

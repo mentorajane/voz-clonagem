@@ -61,7 +61,7 @@ export async function POST(request) {
 
     const temImagens = imagensParaVisao.length > 0
     const modelo = temImagens ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama-3.1-8b-instant'
-    const modeloNvidia = temImagens ? 'minimaxai/minimax-m3' : 'meta/llama-3.1-70b-instruct'
+    const modeloNvidia = temImagens ? 'minimaxai/minimax-m3' : 'meta/llama-3.1-8b-instruct'
 
     const linguaNomes = { 'pt-br': 'Português (Brasil)', 'pt': 'Português (Portugal)', 'en': 'inglês', 'es': 'espanhol', 'fr': 'francês', 'de': 'alemão', 'it': 'italiano', 'ja': 'japonês', 'zh-cn': 'chinês simplificado' }
     const linguaInstrucao = lingua && lingua !== 'pt-br' ? `\n\n## REGRA DE IDIOMA — MUITO IMPORTANTE\nVocê DEVE responder SOMENTE em ${linguaNomes[lingua] || lingua}. NÃO escreva em português. NÃO misture idiomas. Toda a resposta deve estar integralmente em ${linguaNomes[lingua] || lingua}. Ignore o idioma da pergunta — responda sempre em ${linguaNomes[lingua] || lingua}.` : ''
@@ -72,9 +72,9 @@ export async function POST(request) {
     const imagensInstrucao = temImagens ? '\n\nVocê recebeu imagens. DESCREVA e ANALISE cada imagem de forma útil e natural.' : ''
     let systemPrompt
     if (almaContent || negocioContent) {
-      systemPrompt = `Você é a pessoa descrita abaixo. Responda SEMPRE no estilo, tom e personalidade dela, usando as informações fornecidas. Seja EXTREMAMENTE CONCISO — no máximo 2-3 frases por resposta, direto ao ponto, sem rodeios. NUNCA fale como se fosse um robô ou IA genérica — você é a própria pessoa.${linguaInstrucao}${almaBloco}${negocioBloco}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
+      systemPrompt = `Você é a pessoa descrita abaixo. Responda EM ATÉ 2 FRASES curtas e diretas. NUNCA liste itens. Vá direto ao ponto.${linguaInstrucao}${almaBloco}${negocioBloco}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
     } else {
-      systemPrompt = `Você é um assistente útil. Responda APENAS com 1-3 frases curtas e diretas. Seja conciso, relevante e vá direto ao ponto. Nunca divague.${linguaInstrucao}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
+      systemPrompt = `Você é um assistente útil. Responda EM ATÉ 2 FRASES curtas e diretas. NUNCA liste itens. Vá direto ao ponto.${linguaInstrucao}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
     }
 
     // Monta mensagens com suporte a visão
@@ -92,7 +92,7 @@ export async function POST(request) {
       messages,
       modelo,
       modeloNvidia,
-      maxTokens: temImagens || materiaisTexto ? 800 : 500,
+      maxTokens: temImagens ? 500 : 300,
     })
 
     return NextResponse.json({ resposta })
