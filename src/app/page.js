@@ -92,6 +92,19 @@ export default function Home() {
         }
       }
 
+      // Carrega histórico para dar continuidade
+      let historico = []
+      try {
+        const hRes = await fetch('/api/conversations')
+        const hData = await hRes.json()
+        if (hData.conversas?.length) {
+          historico = hData.conversas.slice(0, 6).reverse().flatMap(c => [
+            { role: 'user', content: c.pergunta },
+            { role: 'assistant', content: c.resposta },
+          ])
+        }
+      } catch {}
+
       const chatRes = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -101,6 +114,7 @@ export default function Home() {
           base_alma: baseAlma || undefined,
           base_negocio: baseNegocio || undefined,
           materiais: materiaisEnvio,
+          historico,
         }),
       })
 

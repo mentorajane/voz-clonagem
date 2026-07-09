@@ -11,7 +11,7 @@ import path from 'path'
 
 export async function POST(request) {
   try {
-    const { pergunta, lingua, base_alma: baseAlmaEnviada, base_negocio: baseNegocioEnviada, materiais } = await request.json()
+    const { pergunta, lingua, base_alma: baseAlmaEnviada, base_negocio: baseNegocioEnviada, materiais, historico } = await request.json()
 
     if (!pergunta || pergunta.trim() === '') {
       return NextResponse.json(
@@ -84,6 +84,7 @@ export async function POST(request) {
 
     const messages = [
       { role: 'system', content: systemPrompt },
+      ...(Array.isArray(historico) ? historico : []),
       { role: 'user', content: userContent },
     ]
 
