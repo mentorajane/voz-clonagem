@@ -42,7 +42,7 @@ export default function Home() {
 
     try {
       let baseAlma = '', baseNegocio = ''
-      let materiaisEnvio = materiais || { pdfs: [], imagens: [] }
+      let materiaisEnvio = materiais || { docs: [], skills: [], imagens: [] }
       if (typeof window !== 'undefined') {
         baseAlma = localStorage.getItem('base_conhecimento') || ''
         baseNegocio = localStorage.getItem('base_conhecimento_negocio') || ''
@@ -62,6 +62,7 @@ export default function Home() {
         }
         if (!materiais) {
           const docs = JSON.parse(localStorage.getItem('materiais_docs') || '[]')
+          const skills = JSON.parse(localStorage.getItem('materiais_skills') || '[]')
           const imgs = JSON.parse(localStorage.getItem('materiais_img') || '[]')
           if (!docs.length) {
             try {
@@ -70,6 +71,13 @@ export default function Home() {
               if (d.value) { materiaisEnvio.docs = JSON.parse(d.value); localStorage.setItem('materiais_docs', d.value) }
             } catch {}
           } else { materiaisEnvio.docs = docs }
+          if (!skills.length) {
+            try {
+              const r = await fetch('/api/base-conhecimento?key=materiais_skills')
+              const d = await r.json()
+              if (d.value) { materiaisEnvio.skills = JSON.parse(d.value); localStorage.setItem('materiais_skills', d.value) }
+            } catch {}
+          } else { materiaisEnvio.skills = skills }
           if (!imgs.length) {
             try {
               const r = await fetch('/api/base-conhecimento?key=materiais_img')

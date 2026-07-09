@@ -16,6 +16,7 @@ export default function ChatInput({ onEnviar, carregando }) {
   function carregarClone() {
     return {
       docs: JSON.parse(localStorage.getItem('materiais_docs') || '[]'),
+      skills: JSON.parse(localStorage.getItem('materiais_skills') || '[]'),
       imagens: JSON.parse(localStorage.getItem('materiais_img') || '[]'),
     }
   }
@@ -29,6 +30,7 @@ export default function ChatInput({ onEnviar, carregando }) {
     const sessaoImgs = arquivos.filter((a) => a.tipo === 'img')
     onEnviar(texto, {
       docs: [...sessaoDocs, ...clone.docs],
+      skills: clone.skills,
       imagens: [...sessaoImgs, ...clone.imagens],
     })
     setPergunta('')

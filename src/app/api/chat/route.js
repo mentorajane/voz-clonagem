@@ -42,7 +42,7 @@ export async function POST(request) {
     // Base NEGÓCIO — enviada pelo frontend (localStorage)
     let negocioContent = baseNegocioEnviada || ''
 
-    // Materiais de referência (documentos e imagens enviados pelo usuário)
+    // Materiais de referência (documentos, skills e imagens enviados pelo usuário)
     let materiaisTexto = ''
     const imagensParaVisao = materiais?.imagens?.filter((img) => img.conteudo) || []
     if (materiais) {
@@ -54,8 +54,15 @@ export async function POST(request) {
           partes.push(bloco)
         }
       }
+      if (materiais.skills?.length) {
+        for (const skill of materiais.skills) {
+          let bloco = `--- Skill: ${skill.nome} ---`
+          if (skill.texto) bloco += `\n${skill.texto}`
+          partes.push(bloco)
+        }
+      }
       if (partes.length) {
-        materiaisTexto = `\n\n## MATERIAIS DE REFERÊNCIA\nUse o conteúdo abaixo para responder perguntas sobre serviços, produtos e materiais.\n${partes.join('\n\n')}`
+        materiaisTexto = `\n\n## MATERIAIS DE REFERÊNCIA\nUse o conteúdo abaixo para responder perguntas sobre serviços, produtos, skills e materiais.\n${partes.join('\n\n')}`
       }
     }
 
