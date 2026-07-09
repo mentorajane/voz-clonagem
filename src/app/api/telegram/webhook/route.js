@@ -214,7 +214,8 @@ export async function POST(request) {
 
   } catch (err) {
     console.error('Telegram webhook error:', err)
-    await sendMessage(token, chatId, 'Desculpe, ocorreu um erro ao processar sua mensagem.')
+    const msgErro = `Erro: ${err?.message || err || 'desconhecido'}`
+    await sendMessage(token, chatId, msgErro)
   }
 
   return NextResponse.json({ ok: true })
