@@ -37,6 +37,7 @@ function buildSystemPrompt(almaContent, negocioContent, docsContent, skillsConte
 
 async function carregarBase() {
   let almaContent = '', negocioContent = '', docsContent = '', skillsContent = ''
+  let telegramAudio = true
   try {
     const { supabase } = await import('@/lib/supabase')
     const { data: alma } = await supabase.from('config').select('value').eq('key', 'base_conhecimento').single()
@@ -57,7 +58,12 @@ async function carregarBase() {
     const { data: skills } = await supabase.from('config').select('value').eq('key', 'materiais_skills').single()
     if (skills?.value) { const p = JSON.parse(skills.value); skillsContent = p.map((s) => `--- Skill: ${s.nome} ---\n${s.texto || ''}`).join('\n\n') }
   } catch {}
-  return { almaContent, negocioContent, docsContent, skillsContent }
+  try {
+    const { supabase } = await import('@/lib/supabase')
+    const { data: tg } = await supabase.from('config').select('value').eq('key', 'telegram_audio').single()
+    if (tg?.value) telegramAudio = tg.value === 'true'
+  } catch {}
+  return { almaContent, negocioContent, docsContent, skillsContent, telegramAudio }
 }
 
 async function chamarGroqTexto(groqKey, systemPrompt, pergunta) {
@@ -117,7 +123,8 @@ async function transcreverAudio(groqKey, buffer) {
   return data.text || ''
 }
 
-async function enviarAudioFish(token, chatId, fishKey, fishModelId, texto) {
+async function enviarAudioFish(token, chatId, fishKey, fishModelId, texto, telegramAudio) {
+  if (!telegramAudio) return false
   try {
     const ttsRes = await fetch('https://api.fish.audio/v1/tts', {
       method: 'POST',
@@ -164,7 +171,7 @@ export async function POST(request) {
         const b64 = buffer.toString('base64')
         const legenda = msg.caption || ''
         const resposta = await chamarGroqVisao(groqKey, systemPrompt, legenda, b64)
-        const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta)
+        const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, base.telegramAudio)
         if (!enviouAudio) await sendMessage(token, chatId, resposta)
       }
       return NextResponse.json({ ok: true })
@@ -179,7 +186,7 @@ export async function POST(request) {
         const transcricao = await transcreverAudio(groqKey, buffer)
         if (transcricao) {
           const resposta = await chamarGroqTexto(groqKey, systemPrompt, `(Mensagem de voz: "${transcricao}")`)
-          const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta)
+          const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, base.telegramAudio)
           if (!enviouAudio) await sendMessage(token, chatId, resposta)
         }
       }
@@ -208,7 +215,7 @@ export async function POST(request) {
 
     sendChatAction(token, chatId, 'typing')
     const resposta = await chamarGroqTexto(groqKey, systemPrompt, msg.text)
-    const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta)
+    const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, base.telegramAudio)
     if (!enviouAudio) await sendMessage(token, chatId, resposta)
 
   } catch (err) {

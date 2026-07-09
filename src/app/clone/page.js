@@ -33,6 +33,7 @@ export default function ClonePage() {
   const [materiaisDocs, setMateriaisDocs] = useState([])
   const [materiaisSkills, setMateriaisSkills] = useState([])
   const [materiaisImg, setMateriaisImg] = useState([])
+  const [telegramAudio, setTelegramAudio] = useState(true)
   const [aviso, setAviso] = useState('')
   const docSettingsRef = useRef(null)
   const skillSettingsRef = useRef(null)
@@ -74,6 +75,8 @@ export default function ClonePage() {
       const imgsLocal = localStorage.getItem('materiais_img')
       if (docsLocal) setMateriaisDocs(JSON.parse(docsLocal))
       if (skillsLocal) setMateriaisSkills(JSON.parse(skillsLocal))
+      const tgAudio = localStorage.getItem('telegram_audio')
+      if (tgAudio !== null) setTelegramAudio(tgAudio === 'true')
       if (imgsLocal) setMateriaisImg(JSON.parse(imgsLocal))
       if (!docsLocal) {
         try { const r = await fetch('/api/base-conhecimento?key=materiais_docs'); const d = await r.json(); if (d.value) { setMateriaisDocs(JSON.parse(d.value)); localStorage.setItem('materiais_docs', d.value) } } catch {}
@@ -101,6 +104,7 @@ export default function ClonePage() {
       localStorage.setItem('materiais_docs', JSON.stringify(materiaisDocs))
       localStorage.setItem('materiais_skills', JSON.stringify(materiaisSkills))
       localStorage.setItem('materiais_img', JSON.stringify(materiaisImg))
+      localStorage.setItem('telegram_audio', telegramAudio ? 'true' : 'false')
     } catch (_) {
       erros.push('localStorage')
     }
@@ -559,6 +563,16 @@ export default function ClonePage() {
             className="rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-sm font-medium text-white transition-colors shadow-lg shadow-amber-500/10">
             Salvar Materiais
           </button>
+          <label className="flex items-center gap-2 text-sm text-white/50 cursor-pointer ml-2">
+            <span>Áudio no Telegram</span>
+            <button type="button" role="switch" aria-checked={telegramAudio} onClick={() => {
+              setTelegramAudio(!telegramAudio)
+              localStorage.setItem('telegram_audio', (!telegramAudio) ? 'true' : 'false')
+            }}
+              className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${telegramAudio ? 'bg-amber-500' : 'bg-white/20'}`}>
+              <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${telegramAudio ? 'translate-x-[18px]' : 'translate-x-[3px]'}`} />
+            </button>
+          </label>
         </div>
       </section>
 
