@@ -9,6 +9,7 @@ export default function ChatInput({ onEnviar, carregando }) {
   const [arquivos, setArquivos] = useState([])
   const [aviso, setAviso] = useState('')
   const [previewArquivo, setPreviewArquivo] = useState(null)
+  const [usouVoz, setUsouVoz] = useState(false)
   const textareaRef = useRef(null)
   const docRef = useRef(null)
   const imgRef = useRef(null)
@@ -34,9 +35,10 @@ export default function ChatInput({ onEnviar, carregando }) {
       docs: [...sessaoDocs, ...clone.docs],
       skills: clone.skills,
       imagens: [...sessaoImgs, ...clone.imagens],
-    })
+    }, usouVoz)
     setPergunta('')
     setArquivos([])
+    setUsouVoz(false)
   }
 
   function handleInput(e) {
@@ -112,6 +114,7 @@ export default function ChatInput({ onEnviar, carregando }) {
       setOuvindo(false)
       setPergunta((prev) => {
         if (prev.trim()) {
+          setUsouVoz(true)
           setTimeout(() => {
             const form = textareaRef.current?.closest('form')
             form?.requestSubmit()

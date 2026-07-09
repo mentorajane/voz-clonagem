@@ -34,7 +34,7 @@ export default function Home() {
     { code: 'zh-cn', nome: '简体中文' },
   ]
 
-  async function handleEnviar(pergunta, materiais) {
+  async function handleEnviar(pergunta, materiais, usouVoz) {
     setErro('')
     setResposta('')
     setAudioUrl(null)
@@ -114,27 +114,29 @@ export default function Home() {
       setResposta(textoResposta)
       setCarregandoChat(false)
 
-      setGerandoVoz(true)
-      try {
-        const ttsRes = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ texto: textoResposta, lingua }),
-        })
+      if (usouVoz) {
+        setGerandoVoz(true)
+        try {
+          const ttsRes = await fetch('/api/tts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ texto: textoResposta, lingua }),
+          })
 
-        if (ttsRes.ok) {
-          const blob = await ttsRes.blob()
-          const url = URL.createObjectURL(blob)
-          setAudioUrl(url)
-          setUsandoVozClone(true)
-        } else {
-          throw new Error('fallback')
+          if (ttsRes.ok) {
+            const blob = await ttsRes.blob()
+            const url = URL.createObjectURL(blob)
+            setAudioUrl(url)
+            setUsandoVozClone(true)
+          } else {
+            throw new Error('fallback')
+          }
+        } catch (_) {
+          setTextoFalar(textoResposta)
+          setFalando(true)
         }
-      } catch (_) {
-        setTextoFalar(textoResposta)
-        setFalando(true)
+        setGerandoVoz(false)
       }
-      setGerandoVoz(false)
 
       fetch('/api/conversations', {
         method: 'POST',
