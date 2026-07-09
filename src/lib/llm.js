@@ -22,22 +22,22 @@ export async function completarChat({ messages, modelo, modeloNvidia, maxTokens 
 
   let erros = []
 
-  // Tenta Groq primeiro
-  if (groqKey) {
-    try {
-      return await tentar('groq', GROQ_URL, groqKey, { model: modelo, messages, temperature: 0.5, max_tokens: maxTokens })
-    } catch (err) {
-      erros.push(`Groq: ${err.message}`)
-      if (!err.rateLimit) throw err
-    }
-  }
-
-  // Fallback NVIDIA
+  // Tenta NVIDIA (primário)
   if (nvidiaKey) {
     try {
       return await tentar('nvidia', NVIDIA_URL, nvidiaKey, { model: modeloNvidia || modelo, messages, temperature: 0.5, max_tokens: maxTokens })
     } catch (err) {
       erros.push(`Nvidia: ${err.message}`)
+      if (!err.rateLimit) throw err
+    }
+  }
+
+  // Fallback Groq
+  if (groqKey) {
+    try {
+      return await tentar('groq', GROQ_URL, groqKey, { model: modelo, messages, temperature: 0.5, max_tokens: maxTokens })
+    } catch (err) {
+      erros.push(`Groq: ${err.message}`)
       throw err
     }
   }
