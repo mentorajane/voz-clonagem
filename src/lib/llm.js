@@ -24,14 +24,15 @@ export async function completarChat({ messages, modelo, modeloNvidia, maxTokens 
   const groqKey = process.env.GROQ_API_KEY
   const nvidiaKey = process.env.NVIDIA_API_KEY
 
+  const corpo = { model: '', messages, temperature: 0.5, max_tokens: maxTokens }
   let erros = []
 
-  // Tenta NVIDIA (mais flexível com tokens)
+  // Tenta NVIDIA (primário para texto)
   if (nvidiaKey) {
     try {
-      return await tentar('nvidia', NVIDIA_URL, nvidiaKey, { model: modeloNvidia || modelo, messages, temperature: 0.5, max_tokens: maxTokens })
+      corpo.model = modeloNvidia || modelo
+      return await tentar('nvidia', NVIDIA_URL, nvidiaKey, { ...corpo })
     } catch (err) {
-      if (!err.rateLimit) throw err
       erros.push(`Nvidia: ${err.message}`)
     }
   }
@@ -39,12 +40,12 @@ export async function completarChat({ messages, modelo, modeloNvidia, maxTokens 
   // Fallback Groq
   if (groqKey) {
     try {
-      return await tentar('groq', GROQ_URL, groqKey, { model: modelo, messages, temperature: 0.5, max_tokens: maxTokens })
+      corpo.model = modelo
+      return await tentar('groq', GROQ_URL, groqKey, { ...corpo })
     } catch (err) {
       erros.push(`Groq: ${err.message}`)
-      throw err
     }
   }
 
-  throw new Error(`Sem API disponível.\n${erros.join('\n')}`)
+  throw new Error(erros.join(' | ') || 'Nenhuma API configurada.')
 }
