@@ -70,7 +70,7 @@ async function chamarGroqTexto(systemPrompt, pergunta) {
       { role: 'user', content: pergunta },
     ],
     modelo: 'llama-3.1-8b-instant',
-    modeloNvidia: 'meta/llama-3.1-70b-instruct',
+    modeloNvidia: 'minimaxai/minimax-m3',
     maxTokens: 500,
   })
 }
@@ -85,7 +85,7 @@ async function chamarGroqVisao(systemPrompt, pergunta, base64Imagem) {
       ]},
     ],
     modelo: 'meta-llama/llama-4-scout-17b-16e-instruct',
-    modeloNvidia: 'meta/llama-4-scout-17b-16e-instruct',
+    modeloNvidia: 'minimaxai/minimax-m3',
     maxTokens: 800,
   })
 }
