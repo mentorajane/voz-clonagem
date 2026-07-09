@@ -107,25 +107,21 @@ async function transcreverAudio(groqKey, buffer) {
 }
 
 async function enviarAudioFish(token, chatId, fishKey, fishModelId, texto, telegramAudio) {
-  if (!telegramAudio || !fishModelId || !fishKey) return
+  if (!telegramAudio || !fishModelId || !fishKey) return false
   try {
     const ttsRes = await fetch('https://api.fish.audio/v1/tts', {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${fishKey}`, 'Content-Type': 'application/json', 'model': 's2.1-pro-free' },
       body: JSON.stringify({ text: texto, reference_id: fishModelId, language: 'pt-br' }),
     })
-    if (!ttsRes.ok) return
+    if (!ttsRes.ok) return false
     const audioBuffer = await ttsRes.arrayBuffer()
     const form = new FormData()
     form.append('chat_id', String(chatId))
     form.append('voice', new Blob([audioBuffer], { type: 'audio/ogg' }), 'audio.ogg')
     await fetch(`${TELEGRAM_API}${token}/sendVoice`, { method: 'POST', body: form })
-  } catch {}
-}
-
-async function responderTelegram(token, chatId, resposta, fishKey, fishModelId, telegramAudio) {
-  await sendMessage(token, chatId, resposta)
-  await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, telegramAudio)
+    return true
+  } catch { return false }
 }
 
 export async function POST(request) {
@@ -157,7 +153,7 @@ export async function POST(request) {
         const b64 = buffer.toString('base64')
         const legenda = msg.caption || ''
         const resposta = await chamarGroqVisao(systemPrompt, legenda, b64)
-        await responderTelegram(token, chatId, resposta, fishKey, fishModelId, base.telegramAudio)
+        await sendMessage(token, chatId, resposta)
       }
       return NextResponse.json({ ok: true })
     }
@@ -171,7 +167,8 @@ export async function POST(request) {
         const transcricao = await transcreverAudio(groqKey, buffer)
         if (transcricao) {
           const resposta = await chamarGroqTexto(systemPrompt, `(Mensagem de voz: "${transcricao}")`)
-          await responderTelegram(token, chatId, resposta, fishKey, fishModelId, base.telegramAudio)
+          const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, base.telegramAudio)
+          if (!enviouAudio) await sendMessage(token, chatId, resposta)
         }
       }
       return NextResponse.json({ ok: true })
@@ -199,7 +196,7 @@ export async function POST(request) {
 
     sendChatAction(token, chatId, 'typing')
     const resposta = await chamarGroqTexto(systemPrompt, msg.text)
-    await responderTelegram(token, chatId, resposta, fishKey, fishModelId, base.telegramAudio)
+    await sendMessage(token, chatId, resposta)
 
   } catch (err) {
     console.error('Telegram webhook error:', err)
