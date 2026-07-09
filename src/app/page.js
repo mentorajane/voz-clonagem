@@ -10,7 +10,8 @@ export default function Home() {
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has('chat')) setIniciado(true)
-  }, [])
+    return () => { if (inlineAudioUrl) URL.revokeObjectURL(inlineAudioUrl) }
+  }, [inlineAudioUrl])
   const [resposta, setResposta] = useState('')
   const [audioUrl, setAudioUrl] = useState(null)
   const [carregandoChat, setCarregandoChat] = useState(false)
@@ -18,9 +19,16 @@ export default function Home() {
   const [falando, setFalando] = useState(false)
   const [erro, setErro] = useState('')
   const [recarregarHistorico, setRecarregarHistorico] = useState(0)
+  const [ultimaConversaId, setUltimaConversaId] = useState(null)
+  const [ultimaPergunta, setUltimaPergunta] = useState('')
   const [textoFalar, setTextoFalar] = useState('')
   const [usandoVozClone, setUsandoVozClone] = useState(false)
   const [lingua, setLingua] = useState('pt-br')
+  const [copiadoInline, setCopiadoInline] = useState(false)
+  const [compartilhadoInline, setCompartilhadoInline] = useState(false)
+  const [carregandoAudioInline, setCarregandoAudioInline] = useState(false)
+  const [tocandoInline, setTocandoInline] = useState(false)
+  const [inlineAudioUrl, setInlineAudioUrl] = useState(null)
 
   const linguas = [
     { code: 'pt-br', nome: 'Português (Brasil)' },
@@ -42,6 +50,8 @@ export default function Home() {
     setFalando(false)
     setGerandoVoz(false)
     setUsandoVozClone(false)
+    setUltimaConversaId(null)
+    setUltimaPergunta('')
     setCarregandoChat(true)
 
     try {
@@ -126,6 +136,7 @@ export default function Home() {
 
       const { resposta: textoResposta } = await chatRes.json()
       setCarregandoChat(false)
+      setUltimaPergunta(pergunta)
 
       // Voz → só áudio (se conseguir); texto digitado → só texto
       if (usouVoz) {
@@ -155,6 +166,8 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pergunta, resposta: textoResposta, lingua }),
+      }).then(r => r.json()).then(d => {
+        if (d.conversa?.id) setUltimaConversaId(d.conversa.id)
       }).catch(() => {})
 
       setRecarregarHistorico((n) => n + 1)
@@ -164,6 +177,92 @@ export default function Home() {
       setGerandoVoz(false)
       setFalando(false)
     }
+  }
+
+  async function handleInlineOuvir() {
+    if (tocandoInline) { setTocandoInline(false); return }
+    if (inlineAudioUrl) { setTocandoInline(true); return }
+    setCarregandoAudioInline(true)
+    try {
+      const ttsRes = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texto: resposta, lingua }),
+      })
+      if (!ttsRes.ok) throw new Error('TTS indisponível')
+      const blob = await ttsRes.blob()
+      const url = URL.createObjectURL(blob)
+      setInlineAudioUrl(url)
+      setTocandoInline(true)
+    } catch (_) { handleInlineBaixarTxt() }
+    setCarregandoAudioInline(false)
+  }
+
+  function handleInlineCopiar() {
+    const texto = `Você: ${ultimaPergunta}\nResposta: ${resposta}`
+    navigator.clipboard.writeText(texto)
+    setCopiadoInline(true)
+    setTimeout(() => setCopiadoInline(false), 2000)
+  }
+
+  function handleInlineCompartilhar() {
+    const texto = `🗣 Voz da Gente\n\nVocê: ${ultimaPergunta}\nResposta: ${resposta}`
+    if (navigator.share) {
+      navigator.share({ title: 'Voz da Gente', text: texto }).catch(() => {})
+    } else {
+      navigator.clipboard.writeText(texto)
+      setCopiadoInline(true)
+      setTimeout(() => setCopiadoInline(false), 2000)
+    }
+    setCompartilhadoInline(true)
+    setTimeout(() => setCompartilhadoInline(false), 2000)
+  }
+
+  async function handleInlineBaixarAudio() {
+    setCarregandoAudioInline(true)
+    try {
+      let url = inlineAudioUrl
+      if (!url) {
+        const ttsRes = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ texto: resposta, lingua }),
+        })
+        if (!ttsRes.ok) throw new Error('TTS indisponível')
+        const blob = await ttsRes.blob()
+        url = URL.createObjectURL(blob)
+      }
+      const a = document.createElement('a')
+      a.href = url
+      a.download = `voz-da-gente-${Date.now()}.wav`
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+    } catch (_) { handleInlineBaixarTxt() }
+    setCarregandoAudioInline(false)
+  }
+
+  function handleInlineBaixarTxt() {
+    const texto = `Voz da Gente - Conversa\nData: ${new Date().toLocaleString('pt-BR')}\n\nVocê: ${ultimaPergunta}\n\nResposta: ${resposta}`
+    const blob = new Blob([texto], { type: 'text/plain;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `conversa-${Date.now()}.txt`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
+    URL.revokeObjectURL(url)
+  }
+
+  async function handleDeletarInline(id) {
+    try {
+      const res = await fetch(`/api/conversations?id=${id}`, { method: 'DELETE' })
+      if (!res.ok) return
+      setUltimaConversaId(null)
+      setResposta('')
+      setRecarregarHistorico((n) => n + 1)
+    } catch (_) {}
   }
 
   // === TELA DE ENTRADA ===
@@ -250,7 +349,7 @@ export default function Home() {
 
         {resposta && (
           <div className="mt-4 rounded-2xl border border-white/10 bg-white/10 backdrop-blur-md p-4 mensagem-entrada">
-            <div className="flex items-start gap-3">
+            <div className="flex items-start gap-3 mb-2">
               <div className="w-7 h-7 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center flex-shrink-0 mt-0.5 shadow-lg">
                 <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -263,6 +362,80 @@ export default function Home() {
                 </p>
               </div>
             </div>
+            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-white/10">
+              <button
+                onClick={handleInlineOuvir}
+                disabled={carregandoAudioInline}
+                className={`inline-flex items-center gap-1 rounded-lg border px-2.5 py-1.5 text-[11px] transition-all disabled:opacity-50 ${tocandoInline ? 'bg-amber-500/20 border-amber-400/40 text-amber-300' : 'bg-white/10 hover:bg-white/20 border-white/20 text-white/60 hover:text-white'}`}
+              >
+                {carregandoAudioInline ? (
+                  <svg className="animate-spin w-3 h-3" viewBox="0 0 24 24" fill="none">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                  </svg>
+                ) : tocandoInline ? (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 10a1 1 0 011-1h4a1 1 0 011 1v4a1 1 0 01-1 1h-4a1 1 0 01-1-1v-4z" />
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                )}
+                {tocandoInline ? 'Parar' : 'Ouvir'}
+              </button>
+              <button
+                onClick={handleInlineBaixarAudio}
+                disabled={carregandoAudioInline}
+                className="inline-flex items-center gap-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 py-1.5 text-[11px] text-white/60 hover:text-white transition-all disabled:opacity-50"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Baixar
+              </button>
+              <button
+                onClick={handleInlineCopiar}
+                className="inline-flex items-center gap-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 py-1.5 text-[11px] text-white/60 hover:text-white transition-all"
+              >
+                {copiadoInline ? (
+                  <svg className="w-3 h-3 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                  </svg>
+                ) : (
+                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2m0 0h2a2 2 0 012 2v3m2 4H10m0 0l3-3m-3 3l3 3" />
+                  </svg>
+                )}
+                {copiadoInline ? 'Copiado' : 'Copiar'}
+              </button>
+              <button
+                onClick={handleInlineCompartilhar}
+                className="inline-flex items-center gap-1 rounded-lg bg-white/10 hover:bg-white/20 border border-white/20 px-2.5 py-1.5 text-[11px] text-white/60 hover:text-white transition-all"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                </svg>
+                Compartilhar
+              </button>
+              <button
+                onClick={() => { if (ultimaConversaId && confirm('Deletar esta conversa?')) handleDeletarInline(ultimaConversaId) }}
+                className="inline-flex items-center gap-1 rounded-lg bg-white/10 hover:bg-rose-500/30 border border-white/20 px-2.5 py-1.5 text-[11px] text-white/60 hover:text-rose-300 transition-all"
+              >
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Deletar
+              </button>
+            </div>
+          </div>
+        )}
+
+        {tocandoInline && inlineAudioUrl && (
+          <div className="mt-2">
+            <audio src={inlineAudioUrl} controls autoPlay className="w-full h-8" onEnded={() => setTocandoInline(false)} />
           </div>
         )}
 
