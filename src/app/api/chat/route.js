@@ -37,7 +37,8 @@ export async function POST(request) {
 
     // Materiais de referência (documentos, skills e imagens enviados pelo usuário)
     let materiaisTexto = ''
-    const imagensParaVisao = materiais?.imagens?.filter((img) => img.conteudo) || []
+    // Só imagens anexadas NA MENSAGEM ATUAL ativam a visão (evita alucinação com imagens de materiais)
+    const imagensParaVisao = materiais?.imagens_sessao?.filter((img) => img.conteudo) || []
     if (materiais) {
       const partes = []
       if (materiais.docs?.length) {

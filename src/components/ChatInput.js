@@ -36,7 +36,8 @@ export default function ChatInput({ onEnviar, carregando }) {
     onEnviar(texto, {
       docs: [...sessaoDocs, ...clone.docs],
       skills: clone.skills,
-      imagens: [...sessaoImgs, ...clone.imagens],
+      imagens: clone.imagens,
+      imagens_sessao: sessaoImgs,
     }, usouVoz)
     setPergunta('')
     setArquivos([])
