@@ -9,7 +9,11 @@ async function tentar(provedor, url, apiKey, body) {
   })
   if (res.ok) {
     const data = await res.json()
-    return data.choices?.[0]?.message?.content
+    const content = data.choices?.[0]?.message?.content
+    if (Array.isArray(content)) {
+      return content.map(p => p.text || '').filter(Boolean).join(' ')
+    }
+    return content || ''
   }
   const erroTexto = await res.text()
   if (res.status === 429) throw Object.assign(new Error(erroTexto), { rateLimit: true, provedor })
