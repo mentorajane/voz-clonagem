@@ -63,10 +63,11 @@ async function carregarBase() {
   return { almaContent, negocioContent, docsContent, skillsContent, telegramAudio }
 }
 
-async function chamarGroqTexto(systemPrompt, pergunta) {
+async function chamarGroqTexto(systemPrompt, pergunta, historico = []) {
   return await completarChat({
     messages: [
       { role: 'system', content: systemPrompt },
+      ...historico,
       { role: 'user', content: pergunta },
     ],
     modelo: 'llama-3.1-8b-instant',
@@ -75,10 +76,11 @@ async function chamarGroqTexto(systemPrompt, pergunta) {
   })
 }
 
-async function chamarGroqVisao(systemPrompt, pergunta, base64Imagem) {
+async function chamarGroqVisao(systemPrompt, pergunta, base64Imagem, historico = []) {
   return await completarChat({
     messages: [
       { role: 'system', content: systemPrompt },
+      ...historico,
       { role: 'user', content: [
         { type: 'text', text: `[IMAGEM RECEBIDA] ${pergunta || 'Descreva esta imagem.'}` },
         { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Imagem}` } },
@@ -88,6 +90,17 @@ async function chamarGroqVisao(systemPrompt, pergunta, base64Imagem) {
     modeloNvidia: 'minimaxai/minimax-m3',
     maxTokens: 800,
   })
+}
+
+async function carregarHistorico() {
+  try {
+    const { data } = await supabase.from('conversas').select('pergunta, resposta').order('created_at', { ascending: false }).limit(6)
+    if (data?.length) return data.reverse().flatMap(c => [
+      { role: 'user', content: c.pergunta },
+      { role: 'assistant', content: c.resposta },
+    ])
+  } catch {}
+  return []
 }
 
 async function transcreverAudio(groqKey, buffer) {
@@ -143,6 +156,7 @@ export async function POST(request) {
   try {
     const base = await carregarBase()
     const systemPrompt = buildSystemPrompt(base.almaContent, base.negocioContent, base.docsContent, base.skillsContent)
+    const historico = await carregarHistorico()
 
     // === FOTO ===
     if (msg.photo) {
@@ -152,7 +166,7 @@ export async function POST(request) {
       if (buffer) {
         const b64 = buffer.toString('base64')
         const legenda = msg.caption || ''
-        const resposta = await chamarGroqVisao(systemPrompt, legenda, b64)
+        const resposta = await chamarGroqVisao(systemPrompt, legenda, b64, historico)
         await sendMessage(token, chatId, resposta)
       }
       return NextResponse.json({ ok: true })
@@ -166,7 +180,7 @@ export async function POST(request) {
       if (buffer) {
         const transcricao = await transcreverAudio(groqKey, buffer)
         if (transcricao) {
-          const resposta = await chamarGroqTexto(systemPrompt, `(Mensagem de voz: "${transcricao}")`)
+          const resposta = await chamarGroqTexto(systemPrompt, `(Mensagem de voz: "${transcricao}")`, historico)
           const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, base.telegramAudio)
           if (!enviouAudio) await sendMessage(token, chatId, resposta)
         }
@@ -182,7 +196,7 @@ export async function POST(request) {
         const buffer = await downloadFile(token, msg.document.file_id)
         if (buffer) {
           const texto = buffer.toString('utf-8').slice(0, 4000)
-          const resposta = await chamarGroqTexto(systemPrompt, `Recebi este documento (${nome}):\n\n${texto}\n\nResuma e diga o que aprendeu com ele.`)
+          const resposta = await chamarGroqTexto(systemPrompt, `Recebi este documento (${nome}):\n\n${texto}\n\nResuma e diga o que aprendeu com ele.`, historico)
           await sendMessage(token, chatId, resposta)
         }
       } else {
@@ -195,8 +209,9 @@ export async function POST(request) {
     if (!msg.text) return NextResponse.json({ ok: true })
 
     sendChatAction(token, chatId, 'typing')
-    const resposta = await chamarGroqTexto(systemPrompt, msg.text)
+    const resposta = await chamarGroqTexto(systemPrompt, msg.text, historico)
     await sendMessage(token, chatId, resposta)
+    supabase.from('conversas').insert([{ pergunta: msg.text, resposta, created_at: new Date().toISOString() }]).catch(() => {})
 
   } catch (err) {
     console.error('Telegram webhook error:', err)
