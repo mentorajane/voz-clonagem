@@ -111,9 +111,9 @@ export default function Home() {
       }
 
       const { resposta: textoResposta } = await chatRes.json()
-      setResposta(textoResposta)
       setCarregandoChat(false)
 
+      // Voz → só áudio (se conseguir); texto digitado → só texto
       if (usouVoz) {
         setGerandoVoz(true)
         try {
@@ -128,9 +128,13 @@ export default function Home() {
             const url = URL.createObjectURL(blob)
             setAudioUrl(url)
             setUsandoVozClone(true)
+          } else {
+            setResposta(textoResposta)
           }
-        } catch (_) {}
+        } catch (_) { setResposta(textoResposta) }
         setGerandoVoz(false)
+      } else {
+        setResposta(textoResposta)
       }
 
       fetch('/api/conversations', {
