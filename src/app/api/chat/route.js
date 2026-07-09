@@ -60,7 +60,7 @@ export async function POST(request) {
     }
 
     const temImagens = imagensParaVisao.length > 0
-    const modelo = temImagens ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'mixtral-8x7b-32768'
+    const modelo = temImagens ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama-3.1-8b-instant'
     const modeloNvidia = temImagens ? 'meta/llama-4-scout-17b-16e-instruct' : 'meta/llama-3.1-70b-instruct'
 
     const linguaNomes = { 'pt-br': 'Português (Brasil)', 'pt': 'Português (Portugal)', 'en': 'inglês', 'es': 'espanhol', 'fr': 'francês', 'de': 'alemão', 'it': 'italiano', 'ja': 'japonês', 'zh-cn': 'chinês simplificado' }
