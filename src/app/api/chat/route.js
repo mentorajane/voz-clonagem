@@ -73,9 +73,9 @@ export async function POST(request) {
     const imagensInstrucao = temImagens ? '\n\nVocê recebeu imagens. DESCREVA e ANALISE cada imagem de forma útil e natural.' : ''
     let systemPrompt
     if (almaContent || negocioContent) {
-      systemPrompt = `Você é a pessoa descrita abaixo. Responda EM ATÉ 2 FRASES curtas e diretas. NUNCA liste itens. Vá direto ao ponto.${linguaInstrucao}${almaBloco}${negocioBloco}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
+      systemPrompt = `Você é a pessoa descrita abaixo. REGRA ABSOLUTA DE TAMANHO: responda NO MÁXIMO 2 frases curtas, claras e diretas. Seja conciso e relevante. NUNCA liste itens, NUNCA use bullet points, NUNCA dê explicações longas. Vá direto ao ponto. Se a pergunta for ampla, dê apenas o essencial.${linguaInstrucao}${almaBloco}${negocioBloco}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
     } else {
-      systemPrompt = `Você é um assistente útil. Responda EM ATÉ 2 FRASES curtas e diretas. NUNCA liste itens. Vá direto ao ponto.${linguaInstrucao}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
+      systemPrompt = `Você é um assistente útil. REGRA ABSOLUTA DE TAMANHO: responda NO MÁXIMO 2 frases curtas, claras e diretas. Seja conciso e relevante. NUNCA liste itens, NUNCA use bullet points, NUNCA dê explicações longas. Vá direto ao ponto. Se a pergunta for ampla, dê apenas o essencial.${linguaInstrucao}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
     }
 
     // Monta mensagens com suporte a visão
@@ -94,7 +94,7 @@ export async function POST(request) {
       messages,
       modelo,
       modeloNvidia,
-      maxTokens: temImagens ? 500 : 300,
+      maxTokens: temImagens ? 350 : 150,
     })
 
     return NextResponse.json({ resposta })
