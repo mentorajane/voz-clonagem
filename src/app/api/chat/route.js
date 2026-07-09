@@ -61,7 +61,7 @@ export async function POST(request) {
 
     const temImagens = imagensParaVisao.length > 0
     const modelo = temImagens ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'llama-3.1-8b-instant'
-    const modeloNvidia = 'minimaxai/minimax-m3'
+    const modeloNvidia = temImagens ? 'minimaxai/minimax-m3' : 'meta/llama-3.1-70b-instruct'
 
     const linguaNomes = { 'pt-br': 'Português (Brasil)', 'pt': 'Português (Portugal)', 'en': 'inglês', 'es': 'espanhol', 'fr': 'francês', 'de': 'alemão', 'it': 'italiano', 'ja': 'japonês', 'zh-cn': 'chinês simplificado' }
     const linguaInstrucao = lingua && lingua !== 'pt-br' ? `\n\n## REGRA DE IDIOMA — MUITO IMPORTANTE\nVocê DEVE responder SOMENTE em ${linguaNomes[lingua] || lingua}. NÃO escreva em português. NÃO misture idiomas. Toda a resposta deve estar integralmente em ${linguaNomes[lingua] || lingua}. Ignore o idioma da pergunta — responda sempre em ${linguaNomes[lingua] || lingua}.` : ''
