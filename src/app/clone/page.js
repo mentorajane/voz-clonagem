@@ -462,7 +462,7 @@ export default function ClonePage() {
           </svg>
           <h2 className="text-xl font-bold text-white">Materiais de Referência</h2>
         </div>
-        <p className="text-sm text-white/60 mb-4">Envie documentos Markdown, Skills e imagens que o assistente pode consultar para entender melhor o negócio.</p>
+        <p className="text-xs text-white/50 mb-4">Envie documentos markdown, skills e imagens que o assistente pode consultar para entender melhor o negócio.</p>
 
         <div className="flex gap-2 mb-4 flex-wrap">
           <input ref={docSettingsRef} type="file" accept=".md,.txt" onChange={handleDocSettings} className="hidden" />
