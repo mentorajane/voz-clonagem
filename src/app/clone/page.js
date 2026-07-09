@@ -546,6 +546,20 @@ export default function ClonePage() {
             )}
           </div>
         )}
+        <div className="mt-4 flex items-center gap-3">
+          <button onClick={async () => {
+            try {
+              localStorage.setItem('materiais_docs', JSON.stringify(materiaisDocs))
+              localStorage.setItem('materiais_skills', JSON.stringify(materiaisSkills))
+              localStorage.setItem('materiais_img', JSON.stringify(materiaisImg))
+              await salvarMateriaisSupabase(materiaisDocs, materiaisSkills, materiaisImg)
+              setAviso('Materiais salvos com sucesso!'); setTimeout(() => setAviso(''), 3000)
+            } catch { setAviso('Erro ao salvar materiais.'); setTimeout(() => setAviso(''), 3000) }
+          }}
+            className="rounded-xl bg-amber-500 hover:bg-amber-600 px-5 py-2.5 text-sm font-medium text-white transition-colors shadow-lg shadow-amber-500/10">
+            Salvar Materiais
+          </button>
+        </div>
       </section>
 
     </div>
