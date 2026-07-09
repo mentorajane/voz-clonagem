@@ -10,8 +10,7 @@ export default function Home() {
 
   useEffect(() => {
     if (new URLSearchParams(window.location.search).has('chat')) setIniciado(true)
-    return () => { if (inlineAudioUrl) URL.revokeObjectURL(inlineAudioUrl) }
-  }, [inlineAudioUrl])
+  }, [])
   const [resposta, setResposta] = useState('')
   const [audioUrl, setAudioUrl] = useState(null)
   const [carregandoChat, setCarregandoChat] = useState(false)
