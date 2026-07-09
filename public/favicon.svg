@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a1a2e"/>
+      <stop offset="100%" stop-color="#0f0f1a"/>
+    </linearGradient>
+    <linearGradient id="bolha" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35"/>
+      <stop offset="100%" stop-color="#f59e0b" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="borda" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fcd34d"/>
+      <stop offset="100%" stop-color="#f59e0b"/>
+    </linearGradient>
+    <linearGradient id="play" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#fde68a"/>
+    </linearGradient>
+  </defs>
+  <rect width="48" height="48" rx="11" fill="url(#bg)"/>
+  <circle cx="24" cy="24" r="19" fill="url(#bolha)" stroke="url(#borda)" stroke-width="1.5"/>
+  <ellipse cx="21" cy="19" rx="2" ry="1.5" fill="#ffffff" opacity="0.3"/>
+  <g transform="translate(22,24)" fill="none" stroke="url(#play)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <polygon points="0,-7 0,7 13,0" fill="url(#play)" fill-opacity="0.15" stroke="url(#play)"/>
+  </g>
+</svg>
