@@ -283,7 +283,7 @@ export default function ClonePage() {
               <button type="submit" className="w-full rounded-xl bg-amber-500 py-2.5 text-sm font-medium text-white hover:bg-amber-600 transition-colors shadow-lg">Entrar</button>
               {senhaErro && <p className="text-xs text-rose-300 mt-2">{senhaErro}</p>}
             </form>
-            <a href="/" className="inline-block mt-4 text-xs text-white/40 hover:text-white/70 transition-colors">← Voltar ao início</a>
+            <a href="/?chat=1" className="inline-block mt-4 text-xs text-white/40 hover:text-white/70 transition-colors">← Voltar ao início</a>
           </div>
         </div>
       </div>
@@ -294,7 +294,7 @@ export default function ClonePage() {
     <div className="max-w-xl mx-auto px-4 py-8 space-y-6">
 
       {/* Voltar */}
-      <a href="/"
+      <a href="/?chat=1"
         className="inline-flex items-center gap-1.5 text-sm text-white/50 hover:text-white transition-colors">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />

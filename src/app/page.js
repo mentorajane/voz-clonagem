@@ -1,12 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import ChatInput from '@/components/ChatInput'
 import AudioPlayer from '@/components/AudioPlayer'
 import ConversationHistory from '@/components/ConversationHistory'
 
 export default function Home() {
   const [iniciado, setIniciado] = useState(false)
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).has('chat')) setIniciado(true)
+  }, [])
   const [resposta, setResposta] = useState('')
   const [audioUrl, setAudioUrl] = useState(null)
   const [carregandoChat, setCarregandoChat] = useState(false)
