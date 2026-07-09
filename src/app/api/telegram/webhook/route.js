@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 
 const TELEGRAM_API = 'https://api.telegram.org/bot'
 
@@ -39,27 +40,22 @@ async function carregarBase() {
   let almaContent = '', negocioContent = '', docsContent = '', skillsContent = ''
   let telegramAudio = true
   try {
-    const { supabase } = await import('@/lib/supabase')
     const { data: alma } = await supabase.from('config').select('value').eq('key', 'base_conhecimento').single()
     if (alma?.value) almaContent = alma.value
   } catch {}
   try {
-    const { supabase } = await import('@/lib/supabase')
     const { data: negocio } = await supabase.from('config').select('value').eq('key', 'base_conhecimento_negocio').single()
     if (negocio?.value) negocioContent = negocio.value
   } catch {}
   try {
-    const { supabase } = await import('@/lib/supabase')
     const { data: docs } = await supabase.from('config').select('value').eq('key', 'materiais_docs').single()
     if (docs?.value) { const p = JSON.parse(docs.value); docsContent = p.map((d) => `--- Documento: ${d.nome} ---\n${d.texto || ''}`).join('\n\n') }
   } catch {}
   try {
-    const { supabase } = await import('@/lib/supabase')
     const { data: skills } = await supabase.from('config').select('value').eq('key', 'materiais_skills').single()
     if (skills?.value) { const p = JSON.parse(skills.value); skillsContent = p.map((s) => `--- Skill: ${s.nome} ---\n${s.texto || ''}`).join('\n\n') }
   } catch {}
   try {
-    const { supabase } = await import('@/lib/supabase')
     const { data: tg } = await supabase.from('config').select('value').eq('key', 'telegram_audio').single()
     if (tg?.value) telegramAudio = tg.value === 'true'
   } catch {}
