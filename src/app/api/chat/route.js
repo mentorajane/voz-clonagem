@@ -5,6 +5,7 @@
 // ============================================
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { completarChat } from '@/lib/llm'
 import fs from 'fs'
 import path from 'path'
 
@@ -16,14 +17,6 @@ export async function POST(request) {
       return NextResponse.json(
         { erro: 'A pergunta não pode estar vazia.' },
         { status: 400 }
-      )
-    }
-
-    const apiKey = process.env.GROQ_API_KEY
-    if (!apiKey) {
-      return NextResponse.json(
-        { erro: 'GROQ_API_KEY não configurada no servidor.' },
-        { status: 500 }
       )
     }
 
@@ -68,6 +61,7 @@ export async function POST(request) {
 
     const temImagens = imagensParaVisao.length > 0
     const modelo = temImagens ? 'meta-llama/llama-4-scout-17b-16e-instruct' : 'mixtral-8x7b-32768'
+    const modeloNvidia = temImagens ? 'meta/llama-4-scout-17b-16e-instruct' : 'meta/llama-3.1-70b-instruct'
 
     const linguaNomes = { 'pt-br': 'Português (Brasil)', 'pt': 'Português (Portugal)', 'en': 'inglês', 'es': 'espanhol', 'fr': 'francês', 'de': 'alemão', 'it': 'italiano', 'ja': 'japonês', 'zh-cn': 'chinês simplificado' }
     const linguaInstrucao = lingua && lingua !== 'pt-br' ? `\n\n## REGRA DE IDIOMA — MUITO IMPORTANTE\nVocê DEVE responder SOMENTE em ${linguaNomes[lingua] || lingua}. NÃO escreva em português. NÃO misture idiomas. Toda a resposta deve estar integralmente em ${linguaNomes[lingua] || lingua}. Ignore o idioma da pergunta — responda sempre em ${linguaNomes[lingua] || lingua}.` : ''
@@ -93,43 +87,19 @@ export async function POST(request) {
       { role: 'user', content: userContent },
     ]
 
-    // Chama a API do Groq
-    const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${apiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: modelo,
-        messages,
-        temperature: 0.5,
-        max_tokens: temImagens || materiaisTexto ? 800 : 500,
-      }),
+    // Chama a API (Groq → NVIDIA fallback)
+    const resposta = await completarChat({
+      messages,
+      modelo,
+      modeloNvidia,
+      maxTokens: temImagens || materiaisTexto ? 800 : 500,
     })
-
-    if (!response.ok) {
-      const errorBody = await response.text()
-      console.error('Erro do Groq:', response.status, errorBody)
-      let mensagem = `Erro ao chamar o Groq: ${response.status}`
-      try {
-        const errJson = JSON.parse(errorBody)
-        if (errJson.error?.message) mensagem = errJson.error.message
-      } catch (_) {}
-      return NextResponse.json(
-        { erro: mensagem },
-        { status: response.status }
-      )
-    }
-
-    const data = await response.json()
-    const resposta = data.choices?.[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.'
 
     return NextResponse.json({ resposta })
   } catch (error) {
-    console.error('Erro interno no /api/chat:', error)
+    console.error('Erro no /api/chat:', error)
     return NextResponse.json(
-      { erro: 'Erro interno do servidor.' },
+      { erro: error.message || 'Erro interno do servidor.' },
       { status: 500 }
     )
   }

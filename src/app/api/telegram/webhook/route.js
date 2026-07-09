@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { supabase } from '@/lib/supabase'
+import { completarChat } from '@/lib/llm'
 
 const TELEGRAM_API = 'https://api.telegram.org/bot'
 
@@ -62,45 +63,31 @@ async function carregarBase() {
   return { almaContent, negocioContent, docsContent, skillsContent, telegramAudio }
 }
 
-async function chamarGroqTexto(groqKey, systemPrompt, pergunta) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'mixtral-8x7b-32768',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: pergunta },
-      ],
-      temperature: 0.5,
-      max_tokens: 500,
-    }),
+async function chamarGroqTexto(systemPrompt, pergunta) {
+  return await completarChat({
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: pergunta },
+    ],
+    modelo: 'mixtral-8x7b-32768',
+    modeloNvidia: 'meta/llama-3.1-70b-instruct',
+    maxTokens: 500,
   })
-  if (!res.ok) throw new Error(await res.text())
-  const data = await res.json()
-  return data.choices?.[0]?.message?.content || 'Desculpe, não consegui gerar uma resposta.'
 }
 
-async function chamarGroqVisao(groqKey, systemPrompt, pergunta, base64Imagem) {
-  const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Authorization': `Bearer ${groqKey}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: [
-          { type: 'text', text: `[IMAGEM RECEBIDA] ${pergunta || 'Descreva esta imagem.'}` },
-          { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Imagem}` } },
-        ]},
-      ],
-      temperature: 0.5,
-      max_tokens: 800,
-    }),
+async function chamarGroqVisao(systemPrompt, pergunta, base64Imagem) {
+  return await completarChat({
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: [
+        { type: 'text', text: `[IMAGEM RECEBIDA] ${pergunta || 'Descreva esta imagem.'}` },
+        { type: 'image_url', image_url: { url: `data:image/jpeg;base64,${base64Imagem}` } },
+      ]},
+    ],
+    modelo: 'meta-llama/llama-4-scout-17b-16e-instruct',
+    modeloNvidia: 'meta/llama-4-scout-17b-16e-instruct',
+    maxTokens: 800,
   })
-  if (!res.ok) throw new Error(await res.text())
-  const data = await res.json()
-  return data.choices?.[0]?.message?.content || 'Desculpe, não consegui analisar a imagem.'
 }
 
 async function transcreverAudio(groqKey, buffer) {
@@ -147,10 +134,11 @@ export async function POST(request) {
 
   const chatId = msg.chat.id
   const groqKey = process.env.GROQ_API_KEY
+  const nvidiaKey = process.env.NVIDIA_API_KEY
   const fishKey = process.env.FISH_AUDIO_API_KEY
   const fishModelId = process.env.FISH_AUDIO_MODEL_ID
 
-  if (!groqKey) return NextResponse.json({ ok: true })
+  if (!groqKey && !nvidiaKey) return NextResponse.json({ ok: true })
 
   try {
     const base = await carregarBase()
@@ -164,7 +152,7 @@ export async function POST(request) {
       if (buffer) {
         const b64 = buffer.toString('base64')
         const legenda = msg.caption || ''
-        const resposta = await chamarGroqVisao(groqKey, systemPrompt, legenda, b64)
+        const resposta = await chamarGroqVisao(systemPrompt, legenda, b64)
         const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, base.telegramAudio)
         if (!enviouAudio) await sendMessage(token, chatId, resposta)
       }
@@ -179,7 +167,7 @@ export async function POST(request) {
       if (buffer) {
         const transcricao = await transcreverAudio(groqKey, buffer)
         if (transcricao) {
-          const resposta = await chamarGroqTexto(groqKey, systemPrompt, `(Mensagem de voz: "${transcricao}")`)
+          const resposta = await chamarGroqTexto(systemPrompt, `(Mensagem de voz: "${transcricao}")`)
           const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, base.telegramAudio)
           if (!enviouAudio) await sendMessage(token, chatId, resposta)
         }
@@ -195,7 +183,7 @@ export async function POST(request) {
         const buffer = await downloadFile(token, msg.document.file_id)
         if (buffer) {
           const texto = buffer.toString('utf-8').slice(0, 4000)
-          const resposta = await chamarGroqTexto(groqKey, systemPrompt, `Recebi este documento (${nome}):\n\n${texto}\n\nResuma e diga o que aprendeu com ele.`)
+          const resposta = await chamarGroqTexto(systemPrompt, `Recebi este documento (${nome}):\n\n${texto}\n\nResuma e diga o que aprendeu com ele.`)
           await sendMessage(token, chatId, resposta)
         }
       } else {
@@ -208,7 +196,7 @@ export async function POST(request) {
     if (!msg.text) return NextResponse.json({ ok: true })
 
     sendChatAction(token, chatId, 'typing')
-    const resposta = await chamarGroqTexto(groqKey, systemPrompt, msg.text)
+    const resposta = await chamarGroqTexto(systemPrompt, msg.text)
     const enviouAudio = await enviarAudioFish(token, chatId, fishKey, fishModelId, resposta, base.telegramAudio)
     if (!enviouAudio) await sendMessage(token, chatId, resposta)
 
