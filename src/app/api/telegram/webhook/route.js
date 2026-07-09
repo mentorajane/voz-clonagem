@@ -133,12 +133,10 @@ async function enviarAudioFish(token, chatId, fishKey, fishModelId, texto, teleg
     })
     if (!ttsRes.ok) return false
     const audioBuffer = await ttsRes.arrayBuffer()
-    const b64 = Buffer.from(audioBuffer).toString('base64')
-    await fetch(`${TELEGRAM_API}${token}/sendVoice`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, voice: b64 }),
-    })
+    const form = new FormData()
+    form.append('chat_id', String(chatId))
+    form.append('voice', new Blob([audioBuffer], { type: 'audio/ogg' }), 'audio.ogg')
+    await fetch(`${TELEGRAM_API}${token}/sendVoice`, { method: 'POST', body: form })
     return true
   } catch { return false }
 }
