@@ -57,3 +57,26 @@ export async function POST(request) {
     return NextResponse.json({ erro: 'Erro interno do servidor.' }, { status: 500 })
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const apiKey = process.env.FISH_AUDIO_API_KEY
+    const modelId = process.env.FISH_AUDIO_MODEL_ID
+    if (!apiKey || !modelId) {
+      return NextResponse.json({ erro: 'Nenhuma voz clonada para apagar.' }, { status: 400 })
+    }
+    const res = await fetch(`https://api.fish.audio/model/${modelId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${apiKey}` },
+    })
+    if (!res.ok) {
+      const err = await res.text()
+      console.error('Erro ao apagar modelo Fish Audio:', res.status, err)
+      return NextResponse.json({ erro: 'Erro ao apagar voz clonada.' }, { status: 500 })
+    }
+    return NextResponse.json({ sucesso: true, mensagem: 'Voz clonada apagada.' })
+  } catch (error) {
+    console.error('Erro DELETE /api/tts/clone:', error)
+    return NextResponse.json({ erro: 'Erro interno do servidor.' }, { status: 500 })
+  }
+}

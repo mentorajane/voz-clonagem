@@ -19,6 +19,7 @@ export default function ClonePage() {
   const [gravando, setGravando] = useState(false)
   const [tempoGrav, setTempoGrav] = useState(0)
   const [extraindo, setExtraindo] = useState(false)
+  const [apagandoVoz, setApagandoVoz] = useState(false)
   const mediaRecorder = useRef(null)
   const chunks = useRef([])
   const timerRef = useRef(null)
@@ -250,6 +251,23 @@ export default function ClonePage() {
     if (timerRef.current) clearInterval(timerRef.current)
   }
 
+  async function apagarVozClonada() {
+    if (!confirm('Apagar a voz clonada? Outra pessoa poderá gravar a dela em seguida.')) return
+    setApagandoVoz(true)
+    try {
+      const res = await fetch('/api/tts/clone', { method: 'DELETE' })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.erro || 'Erro ao apagar')
+      setResultado(null)
+      setAviso('Voz clonada apagada. Agora outra pessoa pode gravar a dela.')
+      setTimeout(() => setAviso(''), 4000)
+    } catch (err) {
+      setErro(err.message)
+    } finally {
+      setApagandoVoz(false)
+    }
+  }
+
   async function handleSubmit(e) {
     e.preventDefault()
     if (!audioFile) return
@@ -403,6 +421,12 @@ export default function ClonePage() {
               </button>
             </div>
           )}
+          {audioSalvo && (
+            <button type="button" onClick={() => { localStorage.removeItem('gravacao_audio'); setAudioSalvo(null); setAudioBlob(null); setAudioFile(null); if (audioSalvoRef.current) { audioSalvoRef.current.pause(); audioSalvoRef.current.src = '' } }}
+              className="text-xs text-rose-400/70 hover:text-rose-300 transition-colors">
+              Limpar gravação
+            </button>
+          )}
           <button type="submit" disabled={!audioFile || carregando}
             className="w-full rounded-xl bg-amber-500 py-2.5 text-sm font-medium text-white hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             {carregando ? 'Clonando...' : 'Clonar Voz'}
@@ -413,9 +437,18 @@ export default function ClonePage() {
             <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>Processando áudio e clonando voz...</div>
         )}
         {resultado && (
-          <div className="mt-4 rounded-xl bg-amber-500/20 border border-amber-400/30 p-4">
-            <p className="text-sm text-amber-300 font-medium">Voz clonada com sucesso!</p>
-            <p className="text-xs text-amber-300/70 mt-1">Model ID: <code className="text-amber-200 bg-amber-500/10 px-1 rounded">{resultado.model_id}</code></p>
+          <div className="mt-4 rounded-xl bg-amber-500/20 border border-amber-400/30 p-4 space-y-3">
+            <div>
+              <p className="text-sm text-amber-300 font-medium">Voz clonada com sucesso!</p>
+              <p className="text-xs text-amber-300/70 mt-1">Model ID: <code className="text-amber-200 bg-amber-500/10 px-1 rounded">{resultado.model_id}</code></p>
+            </div>
+            <button type="button" onClick={apagarVozClonada} disabled={apagandoVoz}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 border border-rose-400/30 px-3 py-1.5 text-xs text-rose-300 transition-all disabled:opacity-50">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+              </svg>
+              {apagandoVoz ? 'Apagando...' : 'Apagar voz clonada'}
+            </button>
           </div>
         )}
         {erro && <div className="mt-4 rounded-xl bg-rose-500/20 border border-rose-400/30 px-4 py-3 text-sm text-rose-200">{erro}</div>}
