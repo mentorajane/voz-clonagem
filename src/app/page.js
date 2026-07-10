@@ -101,13 +101,13 @@ export default function Home() {
         }
       }
 
-      // Carrega histórico para dar continuidade
+      // Carrega histórico DA SESSÃO ATUAL (sessionStorage) — evita repetir conversas antigas de outros aparelhos
       let historico = []
       try {
-        const hRes = await fetch('/api/conversations')
-        const hData = await hRes.json()
-        if (hData.conversas?.length) {
-          historico = hData.conversas.slice(0, 6).reverse().flatMap(c => [
+        const h = sessionStorage.getItem('historico_sessao')
+        if (h) {
+          const arr = JSON.parse(h)
+          historico = arr.slice(-6).flatMap(c => [
             { role: 'user', content: c.pergunta },
             { role: 'assistant', content: c.resposta },
           ])
@@ -136,6 +136,14 @@ export default function Home() {
       const { resposta: textoResposta } = await chatRes.json()
       setCarregandoChat(false)
       setUltimaPergunta(pergunta)
+
+      // Salva na memória da sessão atual (não vaza para outras conversas/aparelhos)
+      try {
+        const h = sessionStorage.getItem('historico_sessao')
+        const arr = h ? JSON.parse(h) : []
+        arr.push({ pergunta, resposta: textoResposta })
+        sessionStorage.setItem('historico_sessao', JSON.stringify(arr.slice(-12)))
+      } catch {}
 
       // Voz → só áudio (se conseguir); texto digitado → só texto
       if (usouVoz) {
@@ -312,7 +320,7 @@ export default function Home() {
     <div className="max-w-3xl mx-auto px-4 py-4 sm:py-6 space-y-4 sm:space-y-6">
       {/* Sair */}
       <button
-        onClick={() => setIniciado(false)}
+        onClick={() => { try { sessionStorage.removeItem('historico_sessao') } catch {}; setIniciado(false) }}
         className="inline-flex items-center gap-1.5 text-xs text-white/40 hover:text-white/70 transition-colors"
       >
         <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
