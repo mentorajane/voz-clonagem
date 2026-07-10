@@ -258,6 +258,11 @@ export default function ClonePage() {
       const res = await fetch('/api/tts/clone', { method: 'DELETE' })
       const data = await res.json()
       if (!res.ok) throw new Error(data.erro || 'Erro ao apagar')
+      await fetch('/api/base-conhecimento', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'fish_audio_model_id', value: '' }),
+      })
       setResultado(null)
       setAviso('Voz clonada apagada. Agora outra pessoa pode gravar a dela.')
       setTimeout(() => setAviso(''), 4000)
@@ -265,6 +270,21 @@ export default function ClonePage() {
       setErro(err.message)
     } finally {
       setApagandoVoz(false)
+    }
+  }
+
+  async function usarVozClonada(modelId) {
+    try {
+      const res = await fetch('/api/base-conhecimento', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'fish_audio_model_id', value: modelId }),
+      })
+      if (!res.ok) throw new Error('Erro ao salvar')
+      setAviso('Voz definida como ativa! O chat agora fala com ela.')
+      setTimeout(() => setAviso(''), 4000)
+    } catch (err) {
+      setErro(err.message)
     }
   }
 
@@ -442,13 +462,22 @@ export default function ClonePage() {
               <p className="text-sm text-amber-300 font-medium">Voz clonada com sucesso!</p>
               <p className="text-xs text-amber-300/70 mt-1">Model ID: <code className="text-amber-200 bg-amber-500/10 px-1 rounded">{resultado.model_id}</code></p>
             </div>
-            <button type="button" onClick={apagarVozClonada} disabled={apagandoVoz}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 border border-rose-400/30 px-3 py-1.5 text-xs text-rose-300 transition-all disabled:opacity-50">
-              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-              </svg>
-              {apagandoVoz ? 'Apagando...' : 'Apagar voz clonada'}
-            </button>
+            <div className="flex flex-wrap gap-2">
+              <button type="button" onClick={() => usarVozClonada(resultado.model_id)}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/30 border border-emerald-400/30 px-3 py-1.5 text-xs text-emerald-300 transition-all">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                Usar esta voz
+              </button>
+              <button type="button" onClick={apagarVozClonada} disabled={apagandoVoz}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/30 border border-rose-400/30 px-3 py-1.5 text-xs text-rose-300 transition-all disabled:opacity-50">
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                {apagandoVoz ? 'Apagando...' : 'Apagar voz clonada'}
+              </button>
+            </div>
           </div>
         )}
         {erro && <div className="mt-4 rounded-xl bg-rose-500/20 border border-rose-400/30 px-4 py-3 text-sm text-rose-200">{erro}</div>}

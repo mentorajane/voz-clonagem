@@ -149,7 +149,11 @@ export async function POST(request) {
   const groqKey = process.env.GROQ_API_KEY
   const nvidiaKey = process.env.NVIDIA_API_KEY
   const fishKey = process.env.FISH_AUDIO_API_KEY
-  const fishModelId = process.env.FISH_AUDIO_MODEL_ID
+  let fishModelId = process.env.FISH_AUDIO_MODEL_ID
+  try {
+    const { data } = await supabase.from('config').select('value').eq('key', 'fish_audio_model_id').single()
+    if (data?.value) fishModelId = data.value
+  } catch (_) {}
 
   if (!groqKey && !nvidiaKey) return NextResponse.json({ ok: true })
 

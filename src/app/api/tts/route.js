@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { supabase } from '@/lib/supabase'
 
 export async function POST(request) {
   try {
@@ -21,7 +22,12 @@ export async function POST(request) {
     }
 
     const apiKey = process.env.FISH_AUDIO_API_KEY
-    const modelId = process.env.FISH_AUDIO_MODEL_ID
+    let modelId = process.env.FISH_AUDIO_MODEL_ID
+    // Modelo de voz definido no app tem prioridade sobre a env var
+    try {
+      const { data } = await supabase.from('config').select('value').eq('key', 'fish_audio_model_id').single()
+      if (data?.value) modelId = data.value
+    } catch (_) {}
 
     if (!apiKey || !modelId) {
       return NextResponse.json(
