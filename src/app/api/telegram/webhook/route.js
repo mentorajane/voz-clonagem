@@ -76,7 +76,7 @@ async function chamarGroqTexto(systemPrompt, pergunta, historico = []) {
     ],
     modelo: 'llama-3.1-8b-instant',
     modeloNvidia: 'meta/llama-3.1-8b-instruct',
-    maxTokens: 90,
+    maxTokens: 150,
   })
 }
 

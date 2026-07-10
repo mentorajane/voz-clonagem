@@ -96,7 +96,7 @@ export async function POST(request) {
       messages,
       modelo,
       modeloNvidia,
-      maxTokens: temImagens ? 300 : 90,
+      maxTokens: temImagens ? 300 : 150,
     })
 
     return NextResponse.json({ resposta })
