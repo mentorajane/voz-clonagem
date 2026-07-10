@@ -149,6 +149,15 @@ export async function POST(request) {
   const msg = update.message
   if (!msg) return NextResponse.json({ ok: true })
 
+  // Deduplicação: evita reprocessar o mesmo update (retry do Telegram gera mensagem duplicada/erro)
+  const updateId = update.update_id
+  try {
+    const { data } = await supabase.from('config').select('value').eq('key', 'ultimo_update_id').single()
+    if (data?.value && Number(data.value) === updateId) return NextResponse.json({ ok: true })
+  } catch {}
+  // Marca como processado antes de responder, para barrar retries do Telegram
+  supabase.from('config').upsert({ key: 'ultimo_update_id', value: String(updateId) }).catch(() => {})
+
   const chatId = msg.chat.id
   const groqKey = process.env.GROQ_API_KEY
   const nvidiaKey = process.env.NVIDIA_API_KEY
