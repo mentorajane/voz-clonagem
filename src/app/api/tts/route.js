@@ -7,6 +7,19 @@ export async function POST(request) {
       return NextResponse.json({ erro: 'Texto vazio.' }, { status: 400 })
     }
 
+    // Fish Audio s2.1-pro-free: limite de 300 caracteres por requisição de TTS
+    const LIMITE_TTS = 300
+    let textoFala = texto.trim()
+    if (textoFala.length > LIMITE_TTS) {
+      const corte = textoFala.slice(0, LIMITE_TTS)
+      const ultimoPonto = Math.max(corte.lastIndexOf('.'), corte.lastIndexOf('!'), corte.lastIndexOf('?'))
+      if (ultimoPonto > LIMITE_TTS * 0.5) {
+        textoFala = corte.slice(0, ultimoPonto + 1)
+      } else {
+        textoFala = corte.replace(/\s+\S*$/, '').trim() + '...'
+      }
+    }
+
     const apiKey = process.env.FISH_AUDIO_API_KEY
     const modelId = process.env.FISH_AUDIO_MODEL_ID
 
@@ -25,7 +38,7 @@ export async function POST(request) {
         'model': 's2.1-pro-free',
       },
       body: JSON.stringify({
-        text: texto,
+        text: textoFala,
         reference_id: modelId,
         format: 'mp3',
         mp3_bitrate: 128,
