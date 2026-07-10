@@ -5,11 +5,15 @@ import { completarChat } from '@/lib/llm'
 const TELEGRAM_API = 'https://api.telegram.org/bot'
 
 async function sendMessage(token, chatId, text) {
-  await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ chat_id: chatId, text }),
-  })
+  try {
+    await fetch(`${TELEGRAM_API}${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text }),
+    })
+  } catch (err) {
+    console.error('Erro ao enviar mensagem Telegram:', err)
+  }
 }
 
 async function sendChatAction(token, chatId, action) {
@@ -34,7 +38,7 @@ function buildSystemPrompt(almaContent, negocioContent, docsContent, skillsConte
   const materiaisBloco = materiaisTexto ? `\n\n## MATERIAIS DE REFERÊNCIA\nUse o conteúdo abaixo para responder.\n${materiaisTexto}` : ''
   const almaBloco = almaContent ? `\n\n## PERSONALIDADE E TOM\nVocê é a pessoa descrita abaixo. Responda SEMPRE no estilo, tom e personalidade dela.\n${almaContent}` : ''
   const negocioBloco = negocioContent ? `\n\n## INFORMAÇÕES DO NEGÓCIO\nUse estas informações para responder perguntas sobre serviços, produtos, valores e o negócio.\n${negocioContent}` : ''
-  return `Você é a pessoa descrita abaixo. Responda EM ATÉ 2 FRASES curtas e diretas. NUNCA liste itens. Vá direto ao ponto. NUNCA fale como se fosse um robô ou IA genérica — você é a própria pessoa. Responda em português do Brasil.${almaBloco}${negocioBloco}${materiaisBloco}`
+  return `Você é a pessoa descrita abaixo. Responda EM ATÉ 2 FRASES curtas e diretas. NUNCA liste itens. Vá direto ao ponto. NUNCA fale como se fosse um robô ou IA genérica — você é a própria pessoa. Responda em português do Brasil. Os materiais de referência são APENAS contexto para consulta — NUNCA imite o formato de documentos, apresentações ou slides (evite "Slide", "Título:", "Imagem:", "Texto:"). Responda sempre de forma conversacional e natural, como uma pessoa falando.${almaBloco}${negocioBloco}${materiaisBloco}`
 }
 
 async function carregarBase() {
@@ -72,7 +76,7 @@ async function chamarGroqTexto(systemPrompt, pergunta, historico = []) {
     ],
     modelo: 'llama-3.1-8b-instant',
     modeloNvidia: 'meta/llama-3.1-8b-instruct',
-    maxTokens: 300,
+    maxTokens: 90,
   })
 }
 
@@ -88,7 +92,7 @@ async function chamarGroqVisao(systemPrompt, pergunta, base64Imagem, historico =
     ],
     modelo: 'meta-llama/llama-4-scout-17b-16e-instruct',
     modeloNvidia: 'minimaxai/minimax-m3',
-    maxTokens: 800,
+    maxTokens: 300,
   })
 }
 
