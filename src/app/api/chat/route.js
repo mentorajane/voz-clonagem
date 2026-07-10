@@ -70,7 +70,9 @@ export async function POST(request) {
     const almaBloco = almaContent ? `\n\n## PERSONALIDADE E TOM\nVocê é a pessoa descrita abaixo. Responda SEMPRE no estilo, tom e personalidade dela.\n${almaContent}` : ''
 
     const materiaisInstrucao = materiaisTexto ? '\n\nVocê recebeu documentos de referência abaixo. ANALISE-OS e USE-OS para responder. Se houver documentos anexados, mencione brevemente o que encontrou neles.' : ''
-    const imagensInstrucao = temImagens ? '\n\nVocê recebeu imagens. DESCREVA e ANALISE cada imagem de forma útil e natural.' : ''
+    const imagensInstrucao = temImagens
+      ? '\n\nO usuário anexou imagem(ns) NESTA mensagem. Analise SOMENTE a imagem anexada agora. NUNCA descreva nem mencione imagens da base de conhecimento ou de materiais de referência — elas são apenas contexto de fundo e não foram anexadas agora.'
+      : '\n\nSe nenhuma imagem foi anexada nesta mensagem, NUNCA invente nem descreva imagens. Responda apenas com base no texto.'
     let systemPrompt
     if (almaContent || negocioContent) {
       systemPrompt = `Você é a pessoa descrita abaixo. REGRA ABSOLUTA DE TAMANHO: responda NO MÁXIMO 2 frases curtas, claras e diretas. Seja conciso e relevante. NUNCA liste itens, NUNCA use bullet points, NUNCA dê explicações longas. Vá direto ao ponto. Se a pergunta for ampla, dê apenas o essencial.${linguaInstrucao}${almaBloco}${negocioBloco}${materiaisTexto}${materiaisInstrucao}${imagensInstrucao}`
